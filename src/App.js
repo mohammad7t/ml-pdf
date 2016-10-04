@@ -106,6 +106,9 @@ class App extends Component {
     return (
       <div >
         <MyChart from={10} to={50} pdf1={(x)=>10 / x} pdf2={(x)=>Math.sin(x) * Math.sin(x)}/>
+        <MyChart from={10} to={50} pdf1={(x)=>10 / x} pdf2={(x)=>Math.sin(x) * Math.sin(x)}/>
+        <MyChart from={10} to={50} pdf1={(x)=>10 / x} pdf2={(x)=>Math.sin(x) * Math.sin(x)}/>
+        <MyChart from={10} to={50} pdf1={(x)=>10 / x} pdf2={(x)=>Math.sin(x) * Math.sin(x)}/>
       </div>
     );
   }
