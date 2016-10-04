@@ -2,13 +2,16 @@ import React, {Component} from 'react';
 import './App.css';
 import {VictoryChart, VictoryArea, VictoryGroup, VictoryLine} from 'victory';
 import InputRange from 'react-input-range';
-import 'react-input-range/dist/react-input-range.css';
+import './InputRange.css';
 import 'muicss/dist/css/mui.min.css';
 import Appbar from 'muicss/lib/react/appbar';
 import Button from 'muicss/lib/react/button';
 import Container from 'muicss/lib/react/container';
 import Col from 'muicss/lib/react/col';
 import Row from 'muicss/lib/react/row';
+import Panel from 'muicss/lib/react/panel';
+import Textarea from 'muicss/lib/react/textarea';
+import _ from 'underscore';
 
 let memoize = new Map();
 
@@ -28,12 +31,13 @@ function makePoints(args) {
   return points;
 }
 
-function integrate({from, to, pdf, n = 500}) {
+function integrate({from, to, pdf, n = 1000}) {
   let sum = 0, last = pdf(from);
   let delta = (to - from) / n;
   for (let i = 1; i <= n; i++) {
     let cur = pdf(from + i * delta);
     sum += delta * (last + cur) / 2;
+    last = cur;
   }
   return sum;
 }
@@ -54,6 +58,10 @@ class MyChart extends Component {
     });
   }
 
+  shouldComponentUpdate(nextProps, nextState){
+    return !(_.isEqual(this.props, nextProps) && _.isEqual(this.state, nextState));
+  }
+
   render() {
     let {from, to, pdf1, pdf2} = this.props;
     let {hFrom, hTo} = this.state;
@@ -67,18 +75,8 @@ class MyChart extends Component {
     let p2 = integrate({from: hFrom, to: hTo, pdf: pdf2});
     return (
       <div>
-        <div style={{textAlign: 'center', bottom: -20, position: 'relative'}}>
-          Red: {p1.toFixed(5)} {""} Blue: {p2.toFixed(5)}
-        </div>
         <div>
-          <VictoryChart
-            events={[{
-              onClick: (x)=> {
-                console.log(x);
-                return [];
-              }
-            }]}
-          >
+          <VictoryChart padding={{top: 20, bottom: 30, left: 50, right: 50}}>
             <VictoryGroup name="main"
                           colorScale={[
                             "red", "blue", "red", "blue"
@@ -92,7 +90,7 @@ class MyChart extends Component {
             </VictoryGroup>
           </VictoryChart>
         </div>
-        <div style={{paddingLeft: 60, paddingRight: 60}}>
+        <div style={{paddingLeft: '11%', paddingRight: '11%', paddingBottom:20}}>
           <InputRange
             maxValue={to}
             minValue={from}
@@ -100,27 +98,80 @@ class MyChart extends Component {
             onChange={this.handleValuesChange.bind(this)}
           />
         </div>
+        <div style={{textAlign: 'center', position: 'relative'}}>
+          Probability ( {hFrom}&lt;=reward&lt;{hTo} ): <br/>
+          for Red={p1.toFixed(5)} {" | "} for Blue={p2.toFixed(5)}
+        </div>
       </div>
     );
   }
 }
 
+const questions = [
+  {from: 10, to: 50, pdf1: (x)=>10 / x, pdf2: (x)=>Math.pow(Math.sin(x), 2)},
+  {from: 10, to: 50, pdf1: (x)=>10 / x, pdf2: (x)=>Math.pow(Math.sin(x), 2)},
+];
+
 class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {};
+  }
+
+  buttonVariant(questionIndex, pdfIndex) {
+    let value = this.state[questionIndex];
+    if (typeof(value) === "number" && value !== pdfIndex) {
+      return 'flat';
+    } else {
+      return 'default';
+    }
+  }
 
   render() {
     return (
       <div >
-        <Appbar></Appbar>
+        <Appbar>
+          <table width="100%">
+            <tbody>
+            <tr style={{verticalAlign: 'middle'}}>
+              <td className="mui--appbar-height mui--text-subhead" style={{textAlign: 'center'}}>
+                <p>Hi! Thank you very much for participating!</p>
+                <p>Please select "RED" or "BLUE" button for
+                  each case and describe why. </p>
+                <p>The slider at the bottom of each chart helps you inspect probabilities.</p>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </Appbar>
         <Container>
           <Row>
             <Col xs="12" md="6" md-offset="3">
-              <Button color="primary">
-                <button></button>
-              </Button>
-              <MyChart from={10} to={50} pdf1={(x)=>10 / x} pdf2={(x)=>Math.sin(x) * Math.sin(x)}/>
-              <MyChart from={10} to={50} pdf1={(x)=>10 / x} pdf2={(x)=>Math.sin(x) * Math.sin(x)}/>
-              <MyChart from={10} to={50} pdf1={(x)=>10 / x} pdf2={(x)=>Math.sin(x) * Math.sin(x)}/>
-              <MyChart from={10} to={50} pdf1={(x)=>10 / x} pdf2={(x)=>Math.sin(x) * Math.sin(x)}/>
+              {questions.map((question, i) => (
+                <Panel key={i}>
+                  <Row>
+                    <Col md="6" xs="4">
+                      <h2>Case: {i + 1}</h2>
+                    </Col>
+                    <Col md="6" xs="8">
+                      <h2>
+                        <Button variant={this.buttonVariant(i, 1)} color="danger"
+                                onClick={()=>this.setState({[i]: 1})}>Red</Button>
+                        <Button variant={this.buttonVariant(i, 2)} color="primary"
+                                onClick={()=>this.setState({[i]: 2})}>Blue</Button>
+                      </h2>
+                    </Col>
+                  </Row>
+                  {this.state[i] ? (
+                  <Row>
+                    <Col md="12">
+                      <Textarea hint="Why?" required={true}/>
+                    </Col>
+                  </Row>
+                  ) : null}
+                  <MyChart {...question}/>
+                </Panel>
+              ))}
             </Col>
           </Row>
         </Container>
