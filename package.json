@@ -1,0 +1,24 @@
+{
+  "name": "ml-pdf",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "react-scripts": "0.6.1"
+  },
+  "dependencies": {
+    "immutable": "^3.8.1",
+    "react": "^15.3.2",
+    "react-d3-components": "^0.6.5",
+    "react-dom": "^15.3.2",
+    "react-input-range": "^0.9.2",
+    "request": "^2.75.0",
+    "underscore": "^1.8.3",
+    "victory": "^0.12.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  }
+}
