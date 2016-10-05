@@ -107,9 +107,18 @@ class MyChart extends Component {
   }
 }
 
+const c1 = integrate({
+  from: 10, to:50, pdf: (x)=>10 / x
+});
+const c2 = integrate({
+  from: 10, to:50, pdf: (x)=>Math.pow(Math.sin(x/5), 2)
+});
+const c3 = integrate({
+  from: 10, to:50, pdf: (x)=>Math.pow(Math.tan(x/200), 2)
+});
 const questions = [
-  {from: 10, to: 50, pdf1: (x)=>10 / x / 16.09439, pdf2: (x)=>Math.pow(Math.sin(x), 2) / 20.35464},
-  {from: 10, to: 50, pdf1: (x)=>10 / x / 16.09439, pdf2: (x)=>Math.pow(Math.tan(x/200), 2)/1.06004},
+  {from: 10, to: 50, pdf1: (x)=>10 / x / c1, pdf2: (x)=>Math.pow(Math.sin(x/5), 2) / c2},
+  {from: 10, to: 50, pdf1: (x)=>10 / x / c1, pdf2: (x)=>Math.pow(Math.tan(x/200), 2) / c3},
 ];
 
 class App extends Component {
