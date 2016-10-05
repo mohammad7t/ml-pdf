@@ -108,8 +108,8 @@ class MyChart extends Component {
 }
 
 const questions = [
-  {from: 10, to: 50, pdf1: (x)=>10 / x, pdf2: (x)=>Math.pow(Math.sin(x), 2)},
-  {from: 10, to: 50, pdf1: (x)=>10 / x, pdf2: (x)=>Math.pow(Math.sin(x), 2)},
+  {from: 10, to: 50, pdf1: (x)=>10 / x / 16.09439, pdf2: (x)=>Math.pow(Math.sin(x), 2) / 20.35464},
+  {from: 10, to: 50, pdf1: (x)=>10 / x / 16.09439, pdf2: (x)=>Math.pow(Math.tan(x/200), 2)/1.06004},
 ];
 
 class App extends Component {
@@ -120,10 +120,23 @@ class App extends Component {
 
   buttonVariant(questionIndex, pdfIndex) {
     let value = this.state[questionIndex];
-    if (typeof(value) === "number" && value !== pdfIndex) {
+    if (typeof(value) !== "undefined" && value !== pdfIndex) {
       return 'flat';
     } else {
       return 'default';
+    }
+  }
+
+  handleClick(questionIndex, pdfIndex){
+    let latest = Object.keys(this.state).reduce(
+      (x, y) => Math.max(x, y),
+      -1
+    );
+    console.log(latest);
+    if (latest > questionIndex){
+      alert('Please do not change your previous choices.');
+    } else {
+      this.setState({[questionIndex]: pdfIndex});
     }
   }
 
@@ -156,9 +169,9 @@ class App extends Component {
                     <Col md="6" xs="8">
                       <h2>
                         <Button variant={this.buttonVariant(i, 1)} color="danger"
-                                onClick={()=>this.setState({[i]: 1})}>Red</Button>
+                                onClick={()=>this.handleClick(i, 1)}>Red</Button>
                         <Button variant={this.buttonVariant(i, 2)} color="primary"
-                                onClick={()=>this.setState({[i]: 2})}>Blue</Button>
+                                onClick={()=>this.handleClick(i, 2)}>Blue</Button>
                       </h2>
                     </Col>
                   </Row>
