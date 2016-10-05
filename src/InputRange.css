@@ -48,8 +48,7 @@
     top: -1.8rem; }
 
 .InputRange-labelContainer {
-    left: -50%;
-    position: relative; }
+    display: none; }
 .InputRange-label--max .InputRange-labelContainer {
     left: 50%; }
 
