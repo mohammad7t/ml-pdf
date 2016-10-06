@@ -12,6 +12,17 @@ import Panel from 'muicss/lib/react/panel';
 import Textarea from 'muicss/lib/react/textarea';
 import _ from 'underscore';
 import {Circle} from 'rc-progress';
+import firebase from 'firebase';
+import Spinner from 'react-spinjs';
+import Joyride from 'react-joyride';
+import 'react-joyride/lib/styles/react-joyride-compiled.css';
+
+const firebaseConf = {
+  apiKey: "AIzaSyA33ocRW7FR9S8KDCsh2h9FSy09QBMyut0",
+  authDomain: "ml-pdf.firebaseapp.com",
+  databaseURL: "https://ml-pdf.firebaseio.com",
+};
+firebase.initializeApp(firebaseConf);
 
 let memoize = new Map();
 
@@ -155,11 +166,29 @@ class MyChart extends Component {
   }
 }
 
+class MyPanel extends React.Component {
+  render() {
+    return (<div>
+      <div style={{height: 30}}/>
+      <Container>
+        <Row>
+          <Col xs="12" md="10" md-offset="1" lg="6" lg-offset="3">
+            <Panel>
+              {this.props.children}
+            </Panel>
+          </Col>
+        </Row>
+      </Container>
+    </div>);
+  }
+}
+
 class Level extends React.Component {
   resetState() {
     this.setState({
       select: null,
       why: '',
+      submitted: false,
     });
   }
 
@@ -177,6 +206,13 @@ class Level extends React.Component {
 
   handleClick(select) {
     this.setState({select});
+  }
+
+  handleSubmit() {
+    if (this.state.submitted)
+      return;
+    this.setState({submitted: true});
+    this.props.onSubmit(this.state);
   }
 
   static isUnicode(str) {
@@ -197,60 +233,57 @@ class Level extends React.Component {
   render() {
     let {level, levels, question} = this.props;
     let percent = (level + 1) * 100 / (levels + 1);
-    return (
-      <Container style={{marginTop: 30}}>
+    return (<MyPanel>
+      <Row>
+        <Col md="2" xs="2" lg="2">
+          <Circle percent={percent} strokeWidth="10" strokeColor="#ccc" className="RideStep1"/>
+        </Col>
+        <Col md="6" xs="6" lg="6" style={{textAlign: 'right'}} className="RideStep3">
+          <Button variant={this.buttonVariant(1)} color="danger"
+                  onClick={()=>this.handleClick(1)}>Red </Button>
+          <Button variant={this.buttonVariant(2)} color="primary"
+                  onClick={()=>this.handleClick(2)}>Blue</Button>
+        </Col>
+        <Col md="4" xs="4" lg="4">
+          {this.state.why ? (
+            <Button style={{backgroundColor: '#444', color: '#eee'}}
+                    onClick={this.handleSubmit.bind(this)}>
+              {(!this.state.submitted ? "Next >" : (<div>
+                <div style={{visibility: 'hidden'}}>{"Next >"}</div>
+                <Spinner color="white"/>
+              </div>))}
+            </Button>
+          ) : (
+            this.state.select === null ? (
+              <Button disabled={true}>Red or Blue?</Button>
+            ) : (
+              <Button disabled={true}>Why?</Button>
+            )
+          )}
+        </Col>
+      </Row>
+      {this.state.select !== null ? (
         <Row>
-          <Col xs="12" md="10" md-offset="1" lg="6" lg-offset="3">
-            <Panel>
-              <Row>
-                <Col md="2" xs="2" lg="2">
-                  <Circle percent={percent} strokeWidth="10" strokeColor="#ccc"/>
-                </Col>
-                <Col md="6" xs="6" lg="6" style={{textAlign: 'right'}}>
-                  <Button variant={this.buttonVariant(1)} color="danger"
-                          onClick={()=>this.handleClick(1)}>Red</Button>
-                  <Button variant={this.buttonVariant(2)} color="primary"
-                          onClick={()=>this.handleClick(2)}>Blue</Button>
-                </Col>
-                <Col md="4" xs="4" lg="4">
-                  {this.state.why ? (
-                    <Button style={{backgroundColor: '#444', color: '#eee'}}
-                            onClick={()=>this.props.onSubmit(this.state)}>Next &gt;</Button>
-                  ) : (
-                    this.state.select === null ? (
-                      <Button disabled={true}>Red or Blue?</Button>
-                    ) : (
-                      <Button disabled={true}>Why?</Button>
-                    )
-                  )}
-                </Col>
-              </Row>
-              {this.state.select !== null ? (
-                <Row>
-                  <Col xs="12" md="12" lg="12">
+          <Col xs="12" md="12" lg="12">
                     <Textarea
-                      hint={`Please write here your reason for choosing ${['', 'Red', 'Blue'][this.state.select]}`}
+                      hint={`Please write here your reason for choosing ${['', 'Red', 'Blue'][this.state.select]}
+ لطفا توضیح دهید چرا ${['', 'قرمز', 'آبی'][this.state.select]} را انتخاب نمودید. می‌توانید به فارسی بنویسید.
+`}
                       required={true} value={this.state.why}
                       style={{
                         direction: Level.isUnicode(this.state.why) ? 'rtl' : 'ltr',
                       }}
                       onChange={this.handleWhyChange.bind(this)}/>
-                  </Col>
-                </Row>
-              ) : null}
-              <MyChart {...question}/>
-            </Panel>
           </Col>
         </Row>
-      </Container>
-    );
+      ) : null}
+      <MyChart {...question}/>
+    </MyPanel>);
   }
 }
 
-let questions = [
-  {from: 10, to: 50, pdf1: (x)=>10 / x, pdf2: (x)=>Math.pow(Math.sin(x / 5), 2)},
-  {from: 10, to: 50, pdf1: (x)=>10 / x, pdf2: (x)=>Math.pow(Math.tan(x / 200), 2)},
-].map(({from, to, pdf1, pdf2}) => {
+let questions = require('./questions').list;
+questions = questions.map(({from, to, pdf1, pdf2}) => {
   let s1 = integrate({from, to, pdf: pdf1});
   let s2 = integrate({from, to, pdf: pdf2});
   let ret = {from, to, pdf1: (x)=>pdf1(x) / s1, pdf2: (x)=>pdf2(x) / s2};
@@ -262,19 +295,101 @@ let questions = [
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = {level: 0};
+    let session = localStorage.getItem('ml-session');
+    let level = Number.parseInt(localStorage.getItem('ml-level') || '0', 10);
+    if (!session || level === questions.length) {
+      session = firebase.database().ref().child('sessions').push().key;
+      level = 0;
+      localStorage.setItem('ml-session', session);
+      localStorage.setItem('ml-level', level);
+    }
+    this.state = {
+      session,
+      level,
+      steps: [],
+    };
+
   }
 
-  handleSubmit(x) {
-    this.setState({
-      level: this.state.level + 1,
+  handleSubmit(data) {
+    let {session, level} = this.state;
+
+    firebase.database().ref().child(`sessions/${session}`).update({
+      currentLevel: level + 1,
+      [level]: data,
+    }).then(()=> {
+      if (this.state.level === level) {
+        localStorage.setItem('ml-level', `${level + 1}`);
+        this.setState({
+          level: level + 1,
+        });
+      }
     });
+  }
+
+  addSteps(steps) {
+    let joyride = this.joyride;
+
+    if (!Array.isArray(steps)) {
+      steps = [steps];
+    }
+
+    if (!steps.length) {
+      return false;
+    }
+
+    this.setState(function (currentState) {
+      currentState.steps = currentState.steps.concat(joyride.parseSteps(steps));
+      return currentState;
+    });
+  }
+
+  addTooltip(data) {
+    this.joyride.addTooltip(data);
+  }
+
+  componentDidMount() {
+    if (this.state.level === 0) {
+      this.addSteps([
+        {
+          title: 'سلام!',
+          text: 'ممنون از اینکه وقت خود را برای کمک به این پژوهش گذاشتید. این پژوهش چند مرحله‌ی کوتاه دارد. لطفا مراحل را تا پر شدن کامل این دایره ادامه دهید. قول می‌دهیم زمان زیادی از شما نگیریم! <br/> بگذارید ابتدا این صفحه را برایتان توضیح دهیم. کلید «آموزش بعدی» را بفشارید',
+          selector: '.RideStep1',
+          position: 'right',
+        },
+        {
+          title: 'آشنایی با مرحله‌ها',
+          text: 'در هر مرحله، ',
+          selector: '.RideStep2',
+          position: 'bottom',
+        },
+      ]);
+      this.joyride.start(true);
+    }
   }
 
   render() {
     let {level} = this.state;
-    return (<Level key={level} level={level} levels={questions.length} question={questions[level]}
-                   onSubmit={this.handleSubmit.bind(this)}/>);
+    if (level < questions.length) {
+      return (<div>
+        <Joyride ref={c => (this.joyride = c)} steps={this.state.steps} showStepsProgress={true} type="continuous" locale={{
+          back: (<span>آموزش قبلی</span>),
+          close: (<span>بلدم!</span>),
+          next: (<span>آموزش بعدی</span>),
+          last: (<span>شروع نظرسنجی</span>),
+        }}/>
+        <Level key={level} level={level} levels={questions.length} question={questions[level]}
+               onSubmit={this.handleSubmit.bind(this)}/>
+      </div>);
+    } else {
+      return (
+        <Container>
+          <h3>Thank you so much!</h3>
+          <Button onClick={()=>location.reload()} color="primary"> Restart </Button>
+          <Button onClick={()=>window.close()} color="primary"> Exit </Button>
+        </Container>
+      );
+    }
   }
 }
 

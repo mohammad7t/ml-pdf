@@ -22,3 +22,12 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+.joyride{
+  direction: rtl;
+}
+
+.joyride-tooltip__close--header{
+  left: 10px;
+  right: auto !important;
+}
