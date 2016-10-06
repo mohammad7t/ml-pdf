@@ -61,8 +61,8 @@ function integrate({from, to, pdf, n = 1000}) {
 class MyChart extends Component {
   componentWillMount() {
     this.setState({
-      hFrom: this.props.from,
-      hTo: this.props.to,
+      hFrom: this.props.initialFrom || this.props.from,
+      hTo: this.props.initialTo || this.props.to,
       ...this.pointsState(this.props)
     })
   }
@@ -121,29 +121,39 @@ class MyChart extends Component {
 
     let p1 = integrate({from: hFrom, to: hTo, pdf: pdf1}) * 100;
     let p2 = integrate({from: hFrom, to: hTo, pdf: pdf2}) * 100;
+
+    const hStyle = {data: {strokeDasharray: "5, 5", stroke: "#0f0"}};
     return (
       <div>
-        <Row>
-          {this.rewardCol(true, p1, p1 > p2)}
-          {this.rewardCol(false, p2, p2 > p1)}
-        </Row>
-        <div style={{paddingLeft: '11%', paddingRight: '11%', position: 'relative', top: 10}}>
-          <InputRange
-            maxValue={to}
-            minValue={from}
-            value={{min: hFrom, max: hTo}}
-            onChange={this.handleValuesChange.bind(this)}
-          />
+        <div className="RideStep4">
+          <Row>
+            {this.rewardCol(true, p1, p1 > p2)}
+            {this.rewardCol(false, p2, p2 > p1)}
+          </Row>
+          <div style={{height: 10}} />
+          <div style={{paddingLeft: '11%', paddingRight: '11%'}}>
+            <InputRange
+              maxValue={to}
+              minValue={from}
+              value={{min: hFrom, max: hTo}}
+              onChange={this.handleValuesChange.bind(this)}
+            />
+          </div>
         </div>
-        <div>
+        <div className="RideStep3">
           <VictoryChart padding={{top: 20, bottom: 40, left: 50, right: 50}}>
             <VictoryAxis
               label="Reward"
               domain={[from, to]}
+              tickCount={8}
+              style={{
+                axis: {strokeWidth: 3},
+                ticks: {size: 7, stroke: '#000'},
+              }}
               standalone={false}/>
             <VictoryAxis
               dependentAxis
-              label="Probability"
+              style={{axis: {strokeWidth: 3}}}
               tickFormat={(x)=>''}
               standalone={false}/>
             <VictoryGroup name="main"
@@ -157,8 +167,8 @@ class MyChart extends Component {
               <VictoryArea data={hPoints1}/>
               <VictoryArea data={hPoints2}/>
             </VictoryGroup>
-            <VictoryLine data={[{x: hFrom - .001, y: 0}, {x: hFrom, y: yMax}]}/>
-            <VictoryLine data={[{x: hTo - .001, y: 0}, {x: hTo, y: yMax}]}/>
+            <VictoryLine data={[{x: hFrom - .00001, y: 0}, {x: hFrom, y: yMax * 1.05}]} style={hStyle}/>
+            <VictoryLine data={[{x: hTo - .00001, y: 0}, {x: hTo, y: yMax * 1.05}]} style={hStyle}/>
           </VictoryChart>
         </div>
       </div>
@@ -189,6 +199,7 @@ class Level extends React.Component {
       select: null,
       why: '',
       submitted: false,
+      steps: [],
     });
   }
 
@@ -198,6 +209,73 @@ class Level extends React.Component {
 
   componentWillReceiveProps() {
     this.resetState();
+  }
+
+  componentDidMount() {
+    if (this.props.level === 0) {
+      this.addSteps([
+        {
+          title: 'سلام!',
+          text: 'ممنون از اینکه وقت خود را برای کمک به این پژوهش می‌گذارید. این پژوهش چند مرحله‌ی کوتاه دارد. لطفا مراحل را تا پر شدن کامل این دایره ادامه دهید. قول می‌دهیم زمان زیادی از شما نگیریم! <br/> بگذارید ابتدا این صفحه را برایتان توضیح دهیم. کلید «راهنمایی بعدی» را بفشارید',
+          selector: '.RideStep1',
+          position: 'right',
+        },
+        {
+          title: 'صورت مساله',
+          text: `
+فرض کنید دو کلید آبی و قرمز روی یک عابربانک وجود دارد و می‌توانید یکی از آن دو را انتخاب نموده و
+ <span style="font-weight: bold; color: green;">
+«فقط یک بار» 
+</span>
+شانس خود را برای دریافت جایزه امتحان کنید.
+<br/>
+با فشار دادن هر کلید، عابربانک مبلغی جایزه به شما می‌دهد. این مبلغ، با فرآیندی تصادفی تعیین می‌شود و مقدار دقیق آن از قبل مشخص نیست. (این مبلغ ممکن است منفی باشد و از حسابتان کسر شود!)
+<br/>
+اما در هر مرحله اطلاعاتی درباره‌ی احتمال‌های جایزه‌ی دریافتی از هر کلید به شما می‌دهیم و از شما می‌پرسیم اگر جلوی عابربانک باشید، کدام کلید را انتخاب می‌کردید؟
+`,
+          selector: '.RideStep2',
+          position: 'bottom',
+        },
+        {
+          title: 'نمودار توزیع چگالی احتمال جایزه',
+          text: `
+ در هر مرحله دو نمودار قرمز و آبی هر کدام برای کلید همان رنگ مشاهده می‌کنید.
+ 
+ محور افقی (Reward) نمایانگر مبلغ جایزه (با واحد 
+  <span style="font-weight: bold; color: green;">
+«هزار تومان» 
+</span>
+) 
+ و محور عمودی بیانگر میزان احتمال است. 
+  <br/>
+  نحوه‌ی تفسیر هر نمودار به این صورت است که برای هر
+    <span style="font-weight: bold; color: green;">
+    «بازه»
+    </span>
+از مقادیر جایزه، احتمال برنده شدن مبلغی در آن بازه، متناسب است با
+    <span style="font-weight: bold; color: green;">
+    «مساحت زیر نمودار»
+    </span>
+آن بازه. همواره مساحت زیر کل نمودار هر رنگ برابر ۱۰۰ است.
+<br/>
+مثلا، در این نمودار حدود یک چهارم مساحت زیر نمودار آبی، در بازه‌ی اعداد منفی است. یعنی به احتمال ۲۵ درصد با انتخاب کلید آبی، ضرر می‌کنید.
+`,
+          selector: '.RideStep3',
+          position: 'top',
+        },
+        {
+          title: 'ابزار اندازه‌گیری',
+          text: `
+برای کمک به تصمیم‌گیری بهتر شما، ابزاری تعبیه کرده‌ایم که می‌توانید با جابجایی دایره‌‌های سبز رنگ، بازه‌ای را انتخاب نموده و مساحت زیر هر کدام از نمودارهای قرمز و آبی را در آن بازه به صورت همزمان مشاهده نمایید.
+<br/>
+لطفا نمودار را بررسی نموده و روی یکی از دو کلید بالا کلیک کنید. 
+`,
+          selector: '.RideStep4',
+          position: 'bottom',
+        },
+      ]);
+      this.joyride.start(true);
+    }
   }
 
   buttonVariant(index) {
@@ -230,41 +308,81 @@ class Level extends React.Component {
     this.setState({why: event.target.value});
   }
 
+  addSteps(steps) {
+    let joyride = this.joyride;
+
+    if (!Array.isArray(steps)) {
+      steps = [steps];
+    }
+
+    if (!steps.length) {
+      return false;
+    }
+
+    this.setState(function (currentState) {
+      currentState.steps = currentState.steps.concat(joyride.parseSteps(steps));
+      return currentState;
+    });
+  }
+
+  addTooltip(data) {
+    this.joyride.addTooltip(data);
+  }
+
+  renderJoyride() {
+    if (this.state.level > 0)
+      return null;
+    return <Joyride ref={c => (this.joyride = c)}
+                    steps={this.state.steps}
+                    showStepsProgress={true}
+                    type="continuous"
+                    showSkipButton={true}
+                    locale={{
+                      back: (<span>راهنمایی قبلی</span>),
+                      close: (<span>بستن</span>),
+                      next: (<span>راهنمایی بعدی</span>),
+                      last: (<span>شروع نظرسنجی</span>),
+                      skip: (<span>بلدم!</span>),
+                    }}/>
+  }
+
   render() {
     let {level, levels, question} = this.props;
     let percent = (level + 1) * 100 / (levels + 1);
-    return (<MyPanel>
-      <Row>
-        <Col md="2" xs="2" lg="2">
-          <Circle percent={percent} strokeWidth="10" strokeColor="#ccc" className="RideStep1"/>
-        </Col>
-        <Col md="6" xs="6" lg="6" style={{textAlign: 'right'}} className="RideStep3">
-          <Button variant={this.buttonVariant(1)} color="danger"
-                  onClick={()=>this.handleClick(1)}>Red </Button>
-          <Button variant={this.buttonVariant(2)} color="primary"
-                  onClick={()=>this.handleClick(2)}>Blue</Button>
-        </Col>
-        <Col md="4" xs="4" lg="4">
-          {this.state.why ? (
-            <Button style={{backgroundColor: '#444', color: '#eee'}}
-                    onClick={this.handleSubmit.bind(this)}>
-              {(!this.state.submitted ? "Next >" : (<div>
-                <div style={{visibility: 'hidden'}}>{"Next >"}</div>
-                <Spinner color="white"/>
-              </div>))}
-            </Button>
-          ) : (
-            this.state.select === null ? (
-              <Button disabled={true}>Red or Blue?</Button>
-            ) : (
-              <Button disabled={true}>Why?</Button>
-            )
-          )}
-        </Col>
-      </Row>
-      {this.state.select !== null ? (
+    return (<div>
+      {this.renderJoyride()}
+      <MyPanel>
         <Row>
-          <Col xs="12" md="12" lg="12">
+          <Col md="2" xs="2" lg="2">
+            <Circle percent={percent} strokeWidth="10" strokeColor="#ccc" className="RideStep1"/>
+          </Col>
+          <Col md="6" xs="6" lg="6" style={{textAlign: 'right'}} className="RideStep2">
+            <Button variant={this.buttonVariant(1)} color="danger"
+                    onClick={()=>this.handleClick(1)} className="RideStep5">Red </Button>
+            <Button variant={this.buttonVariant(2)} color="primary"
+                    onClick={()=>this.handleClick(2)} className="RideStep6">Blue</Button>
+          </Col>
+          <Col md="4" xs="4" lg="4">
+            {this.state.why ? (
+              <Button style={{backgroundColor: '#444', color: '#eee'}}
+                      onClick={this.handleSubmit.bind(this)}>
+                {(!this.state.submitted ? "Next >" : (<div>
+                  <div style={{visibility: 'hidden'}}>{"Next >"}</div>
+                  <Spinner color="white"/>
+                </div>))}
+              </Button>
+            ) : (
+              this.state.select === null ? (
+                <Button disabled={true}>Red or Blue?</Button>
+              ) : (
+                <Button disabled={true}>Why?</Button>
+              )
+            )}
+          </Col>
+        </Row>
+        {this.state.select !== null ? (
+          <Row>
+            <Col xs="12" md="12" lg="12">
                     <Textarea
                       hint={`Please write here your reason for choosing ${['', 'Red', 'Blue'][this.state.select]}
  لطفا توضیح دهید چرا ${['', 'قرمز', 'آبی'][this.state.select]} را انتخاب نمودید. می‌توانید به فارسی بنویسید.
@@ -274,19 +392,20 @@ class Level extends React.Component {
                         direction: Level.isUnicode(this.state.why) ? 'rtl' : 'ltr',
                       }}
                       onChange={this.handleWhyChange.bind(this)}/>
-          </Col>
-        </Row>
-      ) : null}
-      <MyChart {...question}/>
-    </MyPanel>);
+            </Col>
+          </Row>
+        ) : null}
+        <MyChart {...question}/>
+      </MyPanel>
+    </div>);
   }
 }
 
 let questions = require('./questions').list;
-questions = questions.map(({from, to, pdf1, pdf2}) => {
+questions = questions.map(({from, to, pdf1, pdf2, ...rest}) => {
   let s1 = integrate({from, to, pdf: pdf1});
   let s2 = integrate({from, to, pdf: pdf2});
-  let ret = {from, to, pdf1: (x)=>pdf1(x) / s1, pdf2: (x)=>pdf2(x) / s2};
+  let ret = {from, to, pdf1: (x)=>pdf1(x) / s1, pdf2: (x)=>pdf2(x) / s2, ...rest};
   ret.pdf1.hash = Math.random();
   ret.pdf2.hash = Math.random();
   return ret;
@@ -327,60 +446,12 @@ class App extends Component {
     });
   }
 
-  addSteps(steps) {
-    let joyride = this.joyride;
-
-    if (!Array.isArray(steps)) {
-      steps = [steps];
-    }
-
-    if (!steps.length) {
-      return false;
-    }
-
-    this.setState(function (currentState) {
-      currentState.steps = currentState.steps.concat(joyride.parseSteps(steps));
-      return currentState;
-    });
-  }
-
-  addTooltip(data) {
-    this.joyride.addTooltip(data);
-  }
-
-  componentDidMount() {
-    if (this.state.level === 0) {
-      this.addSteps([
-        {
-          title: 'سلام!',
-          text: 'ممنون از اینکه وقت خود را برای کمک به این پژوهش گذاشتید. این پژوهش چند مرحله‌ی کوتاه دارد. لطفا مراحل را تا پر شدن کامل این دایره ادامه دهید. قول می‌دهیم زمان زیادی از شما نگیریم! <br/> بگذارید ابتدا این صفحه را برایتان توضیح دهیم. کلید «آموزش بعدی» را بفشارید',
-          selector: '.RideStep1',
-          position: 'right',
-        },
-        {
-          title: 'آشنایی با مرحله‌ها',
-          text: 'در هر مرحله، ',
-          selector: '.RideStep2',
-          position: 'bottom',
-        },
-      ]);
-      this.joyride.start(true);
-    }
-  }
 
   render() {
     let {level} = this.state;
     if (level < questions.length) {
-      return (<div>
-        <Joyride ref={c => (this.joyride = c)} steps={this.state.steps} showStepsProgress={true} type="continuous" locale={{
-          back: (<span>آموزش قبلی</span>),
-          close: (<span>بلدم!</span>),
-          next: (<span>آموزش بعدی</span>),
-          last: (<span>شروع نظرسنجی</span>),
-        }}/>
-        <Level key={level} level={level} levels={questions.length} question={questions[level]}
-               onSubmit={this.handleSubmit.bind(this)}/>
-      </div>);
+      return (<Level key={level} level={level} levels={questions.length} question={questions[level]}
+                     onSubmit={this.handleSubmit.bind(this)}/>);
     } else {
       return (
         <Container>
