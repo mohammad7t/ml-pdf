@@ -17,7 +17,7 @@ let memoize = new Map();
 
 function makePoints(args) {
   let {from, to, pdf, n = 80} = args;
-  let sig = pdf.toString() + from + ":" + to + ":" + n;
+  let sig = pdf.hash + ":" + from + ":" + to + ":" + n;
   if (memoize.has(sig))
     return memoize.get(sig);
   let delta = (to - from) / n;
@@ -48,13 +48,12 @@ function integrate({from, to, pdf, n = 1000}) {
 }
 
 class MyChart extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      hFrom: props.from,
-      hTo: props.to,
-      ...this.pointsState(props)
-    }
+  componentWillMount() {
+    this.setState({
+      hFrom: this.props.from,
+      hTo: this.props.to,
+      ...this.pointsState(this.props)
+    })
   }
 
   handleValuesChange(component, {min, max}) {
@@ -157,12 +156,19 @@ class MyChart extends Component {
 }
 
 class Level extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
+  resetState() {
+    this.setState({
       select: null,
       why: '',
-    }
+    });
+  }
+
+  componentWillMount() {
+    this.resetState();
+  }
+
+  componentWillReceiveProps() {
+    this.resetState();
   }
 
   buttonVariant(index) {
@@ -189,7 +195,8 @@ class Level extends React.Component {
   }
 
   render() {
-    let {percent, question} = this.props;
+    let {level, levels, question} = this.props;
+    let percent = (level + 1) * 100 / (levels + 1);
     return (
       <Container style={{marginTop: 30}}>
         <Row>
@@ -207,7 +214,8 @@ class Level extends React.Component {
                 </Col>
                 <Col md="4" xs="4" lg="4">
                   {this.state.why ? (
-                    <Button style={{backgroundColor: '#444', color: '#eee'}}>Next &gt;</Button>
+                    <Button style={{backgroundColor: '#444', color: '#eee'}}
+                            onClick={()=>this.props.onSubmit(this.state)}>Next &gt;</Button>
                   ) : (
                     this.state.select === null ? (
                       <Button disabled={true}>Red or Blue?</Button>
@@ -245,17 +253,28 @@ let questions = [
 ].map(({from, to, pdf1, pdf2}) => {
   let s1 = integrate({from, to, pdf: pdf1});
   let s2 = integrate({from, to, pdf: pdf2});
-  return {from, to, pdf1: (x)=>pdf1(x) / s1, pdf2: (x)=>pdf2(x) / s2};
+  let ret = {from, to, pdf1: (x)=>pdf1(x) / s1, pdf2: (x)=>pdf2(x) / s2};
+  ret.pdf1.hash = Math.random();
+  ret.pdf2.hash = Math.random();
+  return ret;
 });
 
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = {level: -1};
+    this.state = {level: 0};
+  }
+
+  handleSubmit(x) {
+    this.setState({
+      level: this.state.level + 1,
+    });
   }
 
   render() {
-    return (<Level percent={10} question={questions[0]}/>);
+    let {level} = this.state;
+    return (<Level key={level} level={level} levels={questions.length} question={questions[level]}
+                   onSubmit={this.handleSubmit.bind(this)}/>);
   }
 }
 
