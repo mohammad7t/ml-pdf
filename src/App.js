@@ -34,12 +34,14 @@ function makePoints(args) {
   let delta = (to - from) / n;
   let points = [];
   let yMax = 0;
+  points.push({x: from - 0.00001, y: 0});
   for (let i = 0; i <= n; i++) {
     let x = from + i * delta;
     let y = pdf(x);
     points.push({x, y});
     yMax = Math.max(yMax, y);
   }
+  points.push({x: to + 0.00001, y: 0});
   let ret = {
     points, yMax,
   };
@@ -60,9 +62,10 @@ function integrate({from, to, pdf, n = 1000}) {
 
 class MyChart extends Component {
   componentWillMount() {
+    let {initialFrom, from, initialTo, to} = this.props;
     this.setState({
-      hFrom: this.props.initialFrom || this.props.from,
-      hTo: this.props.initialTo || this.props.to,
+      hFrom: typeof(initialFrom) === 'number' ? initialFrom : from,
+      hTo: typeof(initialTo) === 'number' ? initialTo : to,
       ...this.pointsState(this.props)
     })
   }
@@ -94,6 +97,7 @@ class MyChart extends Component {
 
   rewardCol(red, p, active) {
     let {hFrom, hTo} = this.state;
+    p = Math.min(p, 100.0);
     const style = {
       textAlign: 'center',
       color: red ? '#a00' : 'blue',
@@ -121,6 +125,8 @@ class MyChart extends Component {
 
     let p1 = integrate({from: hFrom, to: hTo, pdf: pdf1}) * 100;
     let p2 = integrate({from: hFrom, to: hTo, pdf: pdf2}) * 100;
+    let range = to - from;
+    let lfrom = from - 0.05 * range, rto = to + 0.05 * range;
 
     const hStyle = {data: {strokeDasharray: "5, 5", stroke: "#0f0"}};
     return (
@@ -130,11 +136,11 @@ class MyChart extends Component {
             {this.rewardCol(true, p1, p1 > p2)}
             {this.rewardCol(false, p2, p2 > p1)}
           </Row>
-          <div style={{height: 10}} />
+          <div style={{height: 10}}/>
           <div style={{paddingLeft: '11%', paddingRight: '11%'}}>
             <InputRange
-              maxValue={to}
-              minValue={from}
+              maxValue={rto}
+              minValue={lfrom}
               value={{min: hFrom, max: hTo}}
               onChange={this.handleValuesChange.bind(this)}
             />
@@ -144,7 +150,7 @@ class MyChart extends Component {
           <VictoryChart padding={{top: 20, bottom: 40, left: 50, right: 50}}>
             <VictoryAxis
               label="Reward"
-              domain={[from, to]}
+              domain={[lfrom, rto]}
               tickCount={8}
               style={{
                 axis: {strokeWidth: 3},
@@ -231,7 +237,7 @@ class Level extends React.Component {
 <br/>
 با فشار دادن هر کلید، عابربانک مبلغی جایزه به شما می‌دهد. این مبلغ، با فرآیندی تصادفی تعیین می‌شود و مقدار دقیق آن از قبل مشخص نیست. (این مبلغ ممکن است منفی باشد و از حسابتان کسر شود!)
 <br/>
-اما در هر مرحله اطلاعاتی درباره‌ی احتمال‌های جایزه‌ی دریافتی از هر کلید به شما می‌دهیم و از شما می‌پرسیم اگر جلوی عابربانک باشید، کدام کلید را انتخاب می‌کردید؟
+اما در هر مرحله اطلاعاتی درباره‌ی احتمال‌های جایزه‌ی دریافتی از هر کلید به شما می‌دهیم و از شما می‌پرسیم اگر جلوی عابربانک باشید، کدام کلید را انتخاب می‌کنید؟
 `,
           selector: '.RideStep2',
           position: 'bottom',
@@ -239,7 +245,7 @@ class Level extends React.Component {
         {
           title: 'نمودار توزیع چگالی احتمال جایزه',
           text: `
- در هر مرحله دو نمودار قرمز و آبی هر کدام برای کلید همان رنگ مشاهده می‌کنید.
+ در هر مرحله برای هر کلید، نموداری هم‌رنگش مشاهده می‌کنید.
  
  محور افقی (Reward) نمایانگر مبلغ جایزه (با واحد 
   <span style="font-weight: bold; color: green;">
@@ -252,13 +258,13 @@ class Level extends React.Component {
     <span style="font-weight: bold; color: green;">
     «بازه»
     </span>
-از مقادیر جایزه، احتمال برنده شدن مبلغی در آن بازه، متناسب است با
-    <span style="font-weight: bold; color: green;">
+از مقادیر جایزه، احتمال برنده شدن مبلغی در آن بازه، با
+   <span style="font-weight: bold; color: green;">
     «مساحت زیر نمودار»
     </span>
-آن بازه. همواره مساحت زیر کل نمودار هر رنگ برابر ۱۰۰ است.
+در آن بازه متناسب است.
 <br/>
-مثلا، در این نمودار حدود یک چهارم مساحت زیر نمودار آبی، در بازه‌ی اعداد منفی است. یعنی به احتمال ۲۵ درصد با انتخاب کلید آبی، ضرر می‌کنید.
+مثلا، در این نمودار حدود یک چهارم از مساحت زیر نمودار آبی، در بازه‌ی اعداد منفی است. پس به احتمال یک چهارم (۲۵ درصد) با انتخاب کلید آبی، ضرر می‌کنید. هیچ مساحتی از نمودار قرمز در بازه ی اعداد منفی نیست و با انتخاب کلید قرمز قطعا ضرر نمی‌کنید. در عوض، برای دریافت جایزه‌ی بیشتر از ۲۰ هزار تومان، باید آبی را انتخاب کنید.
 `,
           selector: '.RideStep3',
           position: 'top',
@@ -266,9 +272,11 @@ class Level extends React.Component {
         {
           title: 'ابزار اندازه‌گیری',
           text: `
-برای کمک به تصمیم‌گیری بهتر شما، ابزاری تعبیه کرده‌ایم که می‌توانید با جابجایی دایره‌‌های سبز رنگ، بازه‌ای را انتخاب نموده و مساحت زیر هر کدام از نمودارهای قرمز و آبی را در آن بازه به صورت همزمان مشاهده نمایید.
+برای کمک به تصمیم‌گیری بهتر شما، ابزاری تعبیه کرده‌ایم که می‌توانید با جابجایی کلیدهای سبز رنگ، بازه‌ای از مبلغ‌های جایزه را انتخاب نموده و برای آن بازه، احتمال دریافت آن بازه از جایزه را برای کلیدهای قرمز و آبی مقایسه کنید.
 <br/>
-لطفا نمودار را بررسی نموده و روی یکی از دو کلید بالا کلیک کنید. 
+<span style="font-weight: bold; color: green;">
+توجه کنید موقعیت نهایی کلیدهای سبز رنگ برای ما اهمیت ندارد و اگر مایل به اطلاع از مساحت دقیق زیر نمودارها نیستید، می‌توانید اصلا از این ابزار استفاده نکنید. برای ما، صرفا اینکه کدام یک از کلیدهای آبی و قرمز را انتخاب می‌کنید مهم است.  
+</span>
 `,
           selector: '.RideStep4',
           position: 'bottom',
@@ -280,6 +288,13 @@ class Level extends React.Component {
 
   buttonVariant(index) {
     return (this.state.select === null || this.state.select === index) ? 'default' : 'flat';
+  }
+
+  buttonShadow(index) {
+    return (this.state.select === null || this.state.select === index) ? {
+      border: '1px solid black',
+      boxShadow: '2px 2px 2px 2px black'
+    } : undefined;
   }
 
   handleClick(select) {
@@ -357,9 +372,10 @@ class Level extends React.Component {
             <Circle percent={percent} strokeWidth="10" strokeColor="#ccc" className="RideStep1"/>
           </Col>
           <Col md="6" xs="6" lg="6" style={{textAlign: 'right'}} className="RideStep2">
-            <Button variant={this.buttonVariant(1)} color="danger"
+            <Button variant={this.buttonVariant(1)} color="danger" style={this.buttonShadow(1)}
                     onClick={()=>this.handleClick(1)} className="RideStep5">Red </Button>
-            <Button variant={this.buttonVariant(2)} color="primary"
+            &nbsp;
+            <Button variant={this.buttonVariant(2)} color="primary" style={this.buttonShadow(2)}
                     onClick={()=>this.handleClick(2)} className="RideStep6">Blue</Button>
           </Col>
           <Col md="4" xs="4" lg="4">
@@ -373,7 +389,7 @@ class Level extends React.Component {
               </Button>
             ) : (
               this.state.select === null ? (
-                <Button disabled={true}>Red or Blue?</Button>
+                <Button disabled={true}>Select red/blue</Button>
               ) : (
                 <Button disabled={true}>Why?</Button>
               )
@@ -401,11 +417,12 @@ class Level extends React.Component {
   }
 }
 
-let questions = require('./questions').list;
+let {list:questions, mul, l} = require('./questions');
 questions = questions.map(({from, to, pdf1, pdf2, ...rest}) => {
   let s1 = integrate({from, to, pdf: pdf1});
   let s2 = integrate({from, to, pdf: pdf2});
-  let ret = {from, to, pdf1: (x)=>pdf1(x) / s1, pdf2: (x)=>pdf2(x) / s2, ...rest};
+  let lm = l(from, to);
+  let ret = {from, to, pdf1: lm(mul(pdf1, 1 / s1)), pdf2: lm(mul(pdf2, 1 / s2)), ...rest};
   ret.pdf1.hash = Math.random();
   ret.pdf2.hash = Math.random();
   return ret;
@@ -454,11 +471,11 @@ class App extends Component {
                      onSubmit={this.handleSubmit.bind(this)}/>);
     } else {
       return (
-        <Container>
+        <MyPanel>
           <h3>Thank you so much!</h3>
           <Button onClick={()=>location.reload()} color="primary"> Restart </Button>
           <Button onClick={()=>window.close()} color="primary"> Exit </Button>
-        </Container>
+        </MyPanel>
       );
     }
   }
