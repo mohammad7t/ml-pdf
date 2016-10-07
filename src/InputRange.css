@@ -7,13 +7,13 @@
     border-radius: 10%;
     cursor: pointer;
     display: block;
-    margin-left: -0.5rem;
+    margin-left: -1.3rem;
     margin-top: -1.3rem;
     outline: none;
     position: absolute;
     top: 50%;
     height: 2.5rem;
-    width: 1rem; }
+    width: 2.5rem; }
 .InputRange-slider:active {
     -webkit-transform: scale(1.3);
     transform: scale(1.3); }
