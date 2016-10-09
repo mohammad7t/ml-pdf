@@ -2,7 +2,7 @@
   "name": "ml-pdf",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://ml-pdf.firebaseapp.com/",
+  "homepage": "http://mhsekhavat.github.io/ml-pdf",
   "devDependencies": {
     "gh-pages": "^0.11.0",
     "react-scripts": "0.6.1"
